@@ -1,14 +1,13 @@
-ARG PLEX_VER=1.24.4.5081-e362dc1ee
-ARG PLEX_SHA=67ca826e6cfb8e1ea9caea84d158b5d56e25f2b0
-ARG BUSYBOX_VER=1.33.0
+ARG PLEX_VER=1.30.2.6563-3d4dc0cce
+ARG BUSYBOX_VER=1.35.0
 ARG SU_EXEC_VER=0.4
 ARG TINI_VER=0.19.0
-ARG ZLIB_VER=1.2.11
+ARG ZLIB_VER=1.2.13
 ARG LIBXML2_VER=v2.9.10
 ARG LIBXSLT_VER=v1.1.34
 ARG XMLSTAR_VER=1.6.1
-ARG OPENSSL_VER=1.1.1l
-ARG CURL_VER=curl-7_78_0
+ARG OPENSSL_VER=1.1.1o
+ARG CURL_VER=curl-7_84_0
 
 ARG OUTPUT=/output
 ARG DESTDIR=/prefix
@@ -19,7 +18,7 @@ ARG LLVM_VERSION=10
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-FROM mauimauer/spritsail-alpine:latest AS builder
+FROM spritsail/alpine:3.17 AS builder
 
 RUN apk add --no-cache \
         autoconf \
@@ -50,16 +49,21 @@ ARG OUTPUT
 WORKDIR $OUTPUT
 
 # Fetch Plex and required libraries
-RUN curl -fsSL -o plexmediaserver.deb https://downloads.plex.tv/plex-media-server-new/${PLEX_VER}/debian/plexmediaserver_${PLEX_VER}_amd64.deb \
-# && echo "$PLEX_SHA  plexmediaserver.deb" | sha1sum -c - \
+RUN if [ "$(uname -m)" = "aarch64" ]; then \
+        ARCH=arm64; LIB_DIRS=lib/omx; \
+    else \
+        ARCH=amd64; LIB_DIRS=lib/dri; \
+    fi \
+ && curl -fsSL -o plexmediaserver.deb https://downloads.plex.tv/plex-media-server-new/${PLEX_VER}/debian/plexmediaserver_${PLEX_VER}_${ARCH}.deb \
  && dpkg-deb -x plexmediaserver.deb . \
     \
- && rm -r \
+ && rm -rfv \
         etc/ usr/share/ \
+        usr/lib/plexmediaserver/etc \
         plexmediaserver.deb \
     \
  && cd usr/lib/plexmediaserver \
- && rm \
+ && rm -v \
         lib/libcrypto.so* \
         lib/libcurl.so* \
         lib/libssl.so* \
@@ -76,7 +80,7 @@ RUN curl -fsSL -o plexmediaserver.deb https://downloads.plex.tv/plex-media-serve
  && rmdir lib etc \
  && ln -sv ../ lib \
     # Replace hardlink with a symlink; these files are the same
- && cd .. && ln -sfvn ld-musl-x86_64.so.1 libc.so
+ && cd .. && ln -sfvn "ld-musl-$(uname -m).so.1" libc.so
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -367,12 +371,11 @@ ARG OPENSSL_VER
 ARG CURL_VER
 ARG OUTPUT
 
-LABEL maintainer="Spritsail <plex@spritsail.io>" \
-      org.label-schema.vendor="Spritsail" \
-      org.label-schema.name="Plex Media Server" \
-      org.label-schema.url="https://www.plex.tv/downloads/" \
-      org.label-schema.description="Tiny Docker image for Plex Media Server, built on busybox" \
-      org.label-schema.version=${PLEX_VER} \
+LABEL org.opencontainers.image.authors="Spritsail <plex@spritsail.io>" \
+      org.opencontainers.image.title="Plex Media Server" \
+      org.opencontainers.image.url="https://www.plex.tv/downloads/" \
+      org.opencontainers.image.description="Tiny Docker image for Plex Media Server, built on busybox" \
+      org.opencontainers.image.version=${PLEX_VER} \
       io.spritsail.version.plex=${PLEX_VER} \
       io.spritsail.version.xmlstarlet=${XMLSTAR_VER} \
       io.spritsail.version.busybox=${BUSYBOX_VER} \
