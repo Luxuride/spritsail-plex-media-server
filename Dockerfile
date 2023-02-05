@@ -68,16 +68,12 @@ RUN if [ "$(uname -m)" = "aarch64" ]; then \
         lib/libcurl.so* \
         lib/libssl.so* \
         lib/libnghttp2.so* \
-        lib/libxml2.so* \
-        lib/libxslt.so* \
-        lib/libexslt.so* \
         lib/plexmediaserver.* \
-        etc/ld-musl-x86_64.path \
         Resources/start.sh \
     \
     # Place shared libraries in usr/lib so they can be actually shared
- && mv lib/*.so* lib/dri ../ \
- && rmdir lib etc \
+ && mv lib/*.so* $LIB_DIRS ../ \
+ && rmdir lib \
  && ln -sv ../ lib \
     # Replace hardlink with a symlink; these files are the same
  && cd .. && ln -sfvn "ld-musl-$(uname -m).so.1" libc.so
